@@ -1,2 +1,9 @@
+<<<<<<< HEAD
 .DS_Store
 
+=======
+#.gitignore file
+
+#ignore .DS_Store files from macOS users
+.DS_Store
+>>>>>>> 94f0d31 (This is the first real commmit.)
