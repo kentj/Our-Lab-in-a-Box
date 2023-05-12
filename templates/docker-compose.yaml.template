@@ -1,0 +1,158 @@
+version: '3.1'
+
+services:
+  caddy:
+    image: caddy:latest
+    container_name: ${labName}-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - $PWD/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - $PWD/caddy/data:/data
+      - $PWD/caddy/config:/config
+      - $PWD/caddy:/srv
+      - $PWD/certs:/certs
+
+  guacdb:
+    container_name: ${labName}-guac-db
+    image: mariadb:jammy
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      MYSQL_DATABASE: ${labName}_guac_db
+      MYSQL_USER: guac_db_user
+      MYSQL_PASSWORD: $${${labName_Underscored}_PASSWORD}
+    healthcheck:
+      test: mysqladmin -p$${${labName_Underscored}_PASSWORD} ping -h localhost
+      interval: 10s
+      start_period: 10s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - $PWD/mariadb/databases:/var/lib/mysql
+      - $PWD/mariadb/init/initdb.sql:/docker-entrypoint-initdb.d/1.sql
+
+  guacd:
+    container_name: ${labName}-guacd
+    image: guacamole/guacd
+    restart: unless-stopped
+
+  guacamole:
+    container_name: ${labName}-guacamole
+    restart: unless-stopped
+    build: ./guacamole_build
+    depends_on:
+      - guacd
+      - guacdb
+      - caddy
+    environment:
+      GUACD_HOSTNAME: ${labName}-guacd
+      MYSQL_HOSTNAME: ${labName}-guac-db
+      MYSQL_DATABASE: ${labName_Underscored}_guac_db
+      MYSQL_USER: guac_db_user
+      MYSQL_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      MYSQL_AUTO_CREATE_ACCOUNTS: true
+      OPENID_AUTHORIZATION_ENDPOINT: https://keycloak.${labName}.nccoe.${fqdnEnding}/realms/${labName}/protocol/openid-connect/auth
+      OPENID_JWKS_ENDPOINT: https://keycloak.${labName}.nccoe.${fqdnEnding}/realms/${labName}/protocol/openid-connect/certs
+      OPENID_ISSUER: https://keycloak.${labName}.nccoe.${fqdnEnding}/realms/${labName}
+      OPENID_CLIENT_ID: guacamole
+      OPENID_REDIRECT_URI: https://guacamole.${labName}.nccoe.${fqdnEnding}/guacamole/
+      OPENID_USERNAME_CLAIM_TYPE: preferred_username
+      OPENID_SCOPE: openid profile
+      OPENID_ALLOWED_CLOCK_SKEW: 99999
+      OPENID_MAX_TOKEN_VALIDITY: 300
+      OPENID_MAX_NONCE_VALIDITY: 10
+      LDAP_HOSTNAME: "identity.${labName}.nccoe.${fqdnEnding}"
+      LDAP_USER_BASE_DN: "dc=${labName},dc=nccoe,dc=${fqdnEnding}"
+      LDAP_USERNAME_ATTRIBUTE: "uid"
+      LDAP_GROUP_BASE_DN: "ou=Groups,dc=${labName},dc=nccoe,dc=${fqdnEnding}"
+      LDAP_SEARCH_BIND_DN: "cn=Admin,dc=${labName},dc=nccoe,dc=${fqdnEnding}"
+      LDAP_SEARCH_BIND_PASSWORD: $${${labName_Underscored}_PASSWORD}
+
+  phpldapadmin:
+    image: osixia/phpldapadmin:stable
+    container_name: ${labName}-phpldapadmin
+    environment:
+      - PHPLDAPADMIN_LDAP_HOSTS=${labName}-openldap
+      - PHPLDAPADMIN_HTTPS=false
+    depends_on:
+      - openldap
+
+  openldap:
+    container_name: ${labName}-openldap
+    image: osixia/openldap:stable
+    restart: unless-stopped
+    ports:
+      - '389:389'
+      - '636:636'
+    command: [--copy-service,  --loglevel, debug]
+    environment:
+      LDAP_ORGANISATION: "NCCoE"
+      LDAP_DOMAIN: "${labName}.nccoe.${fqdnEnding}"
+      LDAP_BASE_DN: "dc=${labName},dc=nccoe,dc=${fqdnEnding}"
+      LDAP_ADMIN_PASSWORD: $${${labName_Underscored}_LAB_PASSWORD}
+      LDAP_OPENLDAP_UID: 1000
+      LDAP_OPENLDAP_GID: 1000
+      LDAP_TLS: false
+    healthcheck:
+      test: "ldapwhoami -xH ldapi:// || exit 1"
+      interval: 120s
+      timeout: 5s
+      retries: 15
+    volumes:
+      - $PWD/openldap/slapd/database:/var/lib/ldap
+      - $PWD/openldap/slapd/config:/etc/ldap/slapd.d
+      - $PWD/certs:/container/service/slapd/assets/certs/
+
+  keycloak:
+    depends_on:
+      keycloakdb:
+        condition: service_healthy
+    image: quay.io/keycloak/keycloak:20.0
+    container_name: ${labName}-keycloak
+    restart: unless-stopped
+    command: 
+      - start
+      - --import-realm
+    healthcheck:
+      test: ["CMD", "curl", "-k", "https://${labName}-keycloak:443/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 15
+    environment:
+      KEYCLOAK_ADMIN: 'admin'
+      KEYCLOAK_ADMIN_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      KC_DB: mariadb
+      KC_DB_URL: "jdbc:mariadb://${labName}-keycloak-db/${labName}-keycloak-db"
+      KC_DB_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      KC_DB_USERNAME: ${labName}-keycloak-db-user
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      KC_HTTP_PORT: 80
+      KC_HOSTNAME_STRICT: false
+      KC_PROXY: edge
+      GUACAMOLE_HOSTNAME: ${GUACAMOLE_HOSTNAME}
+    volumes:
+      - $PWD/keycloak/${labName}-realm.json:/opt/keycloak/data/import/realm.json
+      - $PWD/certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.p12:/opt/keycloak/conf/keycloak.${dcName}.nccoe.${fqdnEnding}.p12      
+
+  keycloakdb:
+    image: mariadb:jammy
+    container_name: ${labName}-keycloak-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      MYSQL_DATABASE: ${labName}-keycloak-db
+      MYSQL_USER: ${labName}-keycloak-db-user
+      MYSQL_PASSWORD: $${${labName_Underscored}_PASSWORD}
+    healthcheck:
+      test: mysqladmin -p$${${labName_Underscored}_PASSWORD} ping -h localhost
+      interval: 10s
+      start_period: 10s
+      timeout: 10s
+      retries: 3
+    volumes:
+      - '$PWD/mariadb/data:/var/lib/mysql'
+      - '$PWD/mariadb/init/initdb.sql:/docker-entrypoint-initdb.d/1.sql'

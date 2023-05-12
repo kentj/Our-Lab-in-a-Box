@@ -1,0 +1,477 @@
+= Instructions for Deploying KeyCloak, OpenLDAP, and Guacamole for Access Control in NCCoE Lab Environments
+Chris Brown <cbrown@mitre.org>; John Kent <jkent@mitre.org>
+v0.1, 2023-04-20: Initial draft
+:doctype: article
+:imagesdir: ./images/
+:sectnums:
+
+:description: This document describes the process for deploying a standardized set of tools for baseline access control in the NCCoE lab environments.  The goal of these tools are to provide for identity management, authentication, authorization, and to provide SSH / RDP / VNC / etc access to VM consoles running in the lab environment while logging those accesses.  If possible, this platform will allow self-service identity management capabilities such as changing user passwords and lost password recoveries and single-sign-on for Windows and Linux hosts.  This platform, as described, leverages DNS and Certificate Authority capabilities of the lab's pfSense router.  It also leverages the MinIO platform for Amazon S3-type object storage to support basic backup and restore operations for the various datasets needed by the other services in the platform.  In each case, our intent is to allow these services to be exchanged with other providers should your specific lab needs require you to use a different set of tools.
+
+[preface]
+== Preface
+
+Most of the NCCoE labs use custom-built infrastructures for controlling the access of NCCoE and Collaborator staff to the resources deployed in the lab environment.  
+
+:toc:
+
+== Overview
+
+Managing access to lab resources to the appropriate NCCoE or Collaborator staff requires a multi-layered solution, including firewalls and VPNs provided by NIST and the NCCoE IT Ops team, as well as firewalls and other protections implemented locally within the lab.  At this time, policy interpretation does not allow a lab to leverage the usernames and passwords NCCoE staff and Collaborator staff select for VPN access to the NCCoE lab environment.  This requires each lab to establish its on Identity and Access Management solution.  Each lab is responsible for protecting the equipment, software, and data that collaborators entrust with the NCCoE.
+
+=== Requirements for the Access Control Platform
+
+NOTE: TODO:  Complete this section.
+
+=== High-level Architecture
+
+The following diagram provides a high-level description of the basic physical architecture employed to provide Identity and Access Management functions in the lab.
+
+.Example Remote Access and Identity Management Architecture
+image::Lab_Remote_Access_Arch.svg[]
+
+This document describes an approach, accompanied by a high-level architectural description and deployment instructions, for a standardized infrastructure for managing identity and access in a lab environment using the following open source tools:
+
+    * Keycloak (centralized IAM), 
+    * OpenLDAP (directory services),
+    * phpLDAPAdmin (directory access),
+    * MariaDB (relational database storage), 
+    * Guacamole (SSH/RDP/VNC gateways), and 
+    * pfSense (firewall, routing, certificate authority, and DNS).
+
+=== Summary Approach for Deployment
+
+As you can see from the architecture diagram, the approach uses a single docker container running most of the software components used to allow self-service of lab participant identity, including username selection, password changes, and in the future, password resets by email.  Apache Guacamole includes basic authentication and authorization capabilities internally, but can defer authentication to outside identity providers such as Keycloak or LDAP providers.  In our setup, Apache Guacamole defers authentication to Keycloak.  Keycloak provides an OpenID Connect-based authentication feature that Guacamole defers to.  Keycloak in turn can manage multiple realms.  We set up a realm to manage lab users.  This realm is configured to federate identity information with an OpenLDAP server.  In the future, OpenLDAP may be exchanged with ActiveDirectory to faciliate single-sign-on (SSO) with Windows machines operating in the lab.  Currently, with OpenLDAP, only linux machines can be configured for SSO.
+
+As best practice for Docker/containerization, each database is hosted by a separate MariaDB container instance.  In the current build there are two databases, one configured for Guacamole to store credential and authorization information, and one for Keycloak for storing and managing credential information for the lab realm.
+
+Finally, the approach uses Caddy as a Docker/container-aware reverse proxy (known as an egress container).  Caddy is responsible for exposing and routing all HTTP and HTTPS traffic to any of the docker containers and routes traffic from specific fully qualified domain names (FQDNs) to specific containers based on container name.  To enable this functionality, each container exposing a web end-point must have its own unique FQDN, even though all of those FQDNs will resolve to a single IP.  Outside the lab environment, these names should resolve to an IP address on the WAN or VENDORNET.  Internal to the lab, the FQDN should resolve to the appropriate address on 192.168.0.x network.
+
+== Basic Configurations
+
+There are some basic environment configurations you should perform before establishing the services for Guacamole.
+
+=== Summary of Configuration Naming Schemes and Approaches
+
+To make automatic configuration of this environment possible, the lab should use a methodical and consistent naming convention.  The scripts will create or expect items to be created using specific names.  Almost all entries in the configuration scripts are keyed off your lab abbreviation which should be unique to your lab and used by no others.
+
+==== VM and Service Naming Conventions
+
+NOTE: TODO:  Complete this section.
+
+==== The Configuration Script
+
+NOTE: TODO:  Complete this section.
+
+=== DNS Configurations
+In your DNS server (pfSense in the default lab install) set up the name resolutions required by your lab.  Using pfSense, this is accomplished from the `Services` then `DNS Resolver` menu selection.
+
+NOTE:  TODO: Add screen shots for this section.
+
+On the General Settings tab, ensure the pfSense `DNS Resolver` is enabled.  Then add entries for the following machines in the Host Overrides section of the same page:
+
+ . guacamole.[labname]-lab.nccoe.test -> ipAddr: 192.168.0.2 
+ . keycloak.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
+ . php-ldap-admin.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
+ . openldap.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
+ . minio.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.4
+ . remote.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
+ . ad.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.5
+
+=== Certificate Authority Configurations
+
+There are many options for creating and managing certificate authorities.  In these instructions, we are using the built-in GUI for pfSense which is already available in the default lab environment.  In this step we will be 1) creating the lab Root Certficiate Authority, 2) creating the lab's intermediate Certificate Authority, 3) exporting the certificates and keys for both the root authority and the intermediate authority.
+
+NOTE: Creating an intermediate certificate authority is optional.  It is fine for short-lived labs to sign certificates directly from the root authority.  If you decide to use an intermediate authority you may need to alter some of the certificate chain files used later.
+
+To access the pfSense Certificate Management interface, select the `Cert. Manager` from `System` on the main menu.
+
+.Accessing the pfSense Certificate Management GUI
+image::Open-pfSense-CertificateManager.png[]
+
+Once the interface has loaded, you will see three tabs, `CAs` for creating certificate authorities, `Certificiates` for creating server certificates, and `Certificate Revocation` which we will not be using.
+
+.pfSense Certificate Manager Main Menu
+image::Main-menu-pfSense-Certificate-Manager.png[]
+
+==== Create the Root Certificate Authority
+First, select the `CA` tab to create the root Certificate Authority.  Click the `Add` button in the bottom right of the screen to create the authority.
+
+.pfSense Create Root Certificate Authority
+image:Create-pfSense-CA-IntermediateCA.png[]
+
+Fill in the form using the following values with items not mentioned using the default:
+
+ * Descriptive Name: <Lab Abbreviation>-Lab Root Certificate Authority
+ * Method: Create an internal Certificate Authority
+ * Randomize Serial:  <checked>
+ * Key type: RSA  - <4096>
+ * Country Code: US
+ * State or Province: MD
+ * City: Rockville
+ * Organization: NCCoE
+ * Organizational Unit: <Lab Abbreviation>-Lab
+
+Then click the `Save` button.  The certificate authority has been created, and will appear in the list on the resulting page.
+
+To export the root certificate authority certificate, first find the root certificate authority in the list, and click the star icon on the far right side.  The image below places a red box around the appropriate icon.  The browswer will download a `.crt` file named from your Descriptive Name to your downloads folder.
+
+.pfSense - Export Root Certificate Authority
+image::Export-pfSense-CertificateAuthority.png[]
+
+You will also need to download the Certificate Authority key.  Click the key icon on the far right side of the certificate authority's list entry.  The image below places a red box around the appropriate icon.  The browser will download a `.key` file named from your Descriptive Name to your downloads folder.
+
+.pfSense - Export Root Certificate Authority Key
+image::Export-pfSense-CertificateAuthorityKey.png[]
+
+==== Create the Intermediate Certificate Authority
+
+NOTE: This step is optional.
+
+Use the same steps as for the root authority, except choose:
+
+ * Method: Create an intermediate Certificate Authority
+ 
+This will show a new option:
+
+ * Signing Certificate Authority: Choose the Root Certificate Authority you created above.
+
+Complete the remaining steps, including export of the certificate and keys as above.
+
+=== Creating the Server Certificates
+
+NOTE: TODO:  Complete this section.
+
+== Setup the Virtual Machines
+
+Each of the VMs we will be establishing will rely on Docker (or Podman).  Docker can be run on a number of Linux-based operating systems.  In this guide, we will be using the Ubuntu 20.04 template found in the vSphere template folder.  This template contains most of the software you will need during the install process including _curl_ and _python3_.  Our approach to setting up these servers will be first create an informal VM template based on the Ubuntu 20.04 template that has the common docker software installed, and then clone that informal template for the three Docker-based VMs.
+
+=== Creating a Base Docker Image ===
+
+To create our base docker image, we will follow three steps:  fixing the configuration of the _apt_ package on the base Ubuntu template, installing _docker_, and then adding the _administrator_ user to the _docker_ group in order to simplify command-line access to containers.
+
+==== Fix the configuration of _apt_
+
+The out of the box Ubuntu 20.04 image has a configuration setting that prevents the box from running software updates and software installs.  You must comment out two lines in a configuration file to allow _apt_ to work correctly.
+
+* `sudo pico /etc/apt/apt.conf.d/90curtin-aptproxy`
+* place a `#` in front of each line in the file
+* Press `Ctrl-x`
+* Press `y`
+* Press `Enter`
+
+==== Install _docker_.
+
+These instructions for installing Docker are based on the article [Setup Docker Repositories w/ APT](https://docs.docker.com/engine/install/ubuntu) at [https://docs.docker.com/engine/install/ubuntu](https://docs.docker.com/engine/install/ubuntu).  To use the latest _docker-compose_ file syntax and features, we are leveraging the _compose_ sub-command of _docker_ (_docker compose_) rather than the _docker-compose_ script for coordinated container deployment and orchestration.  The scripts we have provided generally do not work with _docker-compose_.
+
+==== Add the _administrator_ user to the _docker_ group.
+
+After installing Docker, edit _/etc/group_ and add the _administrator_ account to the _docker_ group.  This allows you to manage docker containers on the CLI without constant use of _sudo_.
+
+`sudo pico /etc/group`
+
+Find the (ctrl-w) the line for the _docker_ group.  The list of users in the group follows the third colon (`:`) character on that line.  Type `administrator` at the end of that comma-separated list.  If the list is empty, just type it after the last (third) colon.  Exit the _pico_ editor by typing (ctrl-x), Y, and then (enter).
+
+After the edit, the line in _/etc/group_ should look something like this:
+
+`docker:x:998:administrator`
+
+=== Setup the _Remote_ Virtual Machine
+
+The _remote_ VM is where the _Guacamole_ related Docker containers will be deployed.  Follow these steps for setting up this VM:
+
+ . Clone the template Docker VM in vSphere and name the clone "Remote" in vSphere.
+ . Configure the virtual machine networking stack:
+    * Edit _/etc/netplan/50-cloud-init.yaml_ to assign the VM a static IPv4 address.  We selected _192.168.1.2_.
+    * Edit _/etc/netplan/50-cloud-init.yaml_ to ensure the VM DNS servers point to the pfSense DNS server.
+    +
+    * After both edits, the file should look something like this:
+
+....
+ # This file is generated from information provided by
+ # the datasource.  Changes to it will not persist across an instance.
+ # To disable cloud-init's network configuration capabilities, write a file
+ # /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg with the following:
+ # network: {config: disabled}
+ network:
+     version: 2
+     ethernets:
+         ens192:
+             addresses: [192.168.1.2/24]
+             gateway4: 192.168.1.1
+             nameservers:
+                 addresses: [192.168.1.1]
+....
+
+    * Edit _/etc/hostname_ to set the VM hostname to _remote.*<lab abbreviation>*-lab.nccoe.test_.
+    
+    * After this edit, the file should look something like this:
+
+....
+remote.dc-lab.nccoe.test
+....
+
+ . Create a folder in the _administrator_ home directory to hold the container files.
+    
+    * `mkdir /home/administrator/guacamole`    
+    * `cd /home/administrator/guacamole`
+    * `mkdir mariadb`
+    * `mkdir mariadb/databases`
+    * `mkdir mariadb/init`
+    * `mkdir caddy`
+    * `mkdir caddy/config`
+    * `mkdir caddy/data`
+    * `mkdir certs`
+    * `mkdir certs/CA`
+    * `mkdir certs/guacamole`
+    * `mkdir guacamole_build`
+
+ . Use _curl_ to download the template configuration script and then execute the script.  Answer the questions from the script.  It will download each of the major configuration files, substitute in your answers and move the configuration file to the appropriate location in the file tree.
+    
+    * `cd /home/administrator/guacamole`
+    * `curl <url>`
+    * `python3 configure_lab.py`
+
+ . The following templates are completed to create the configuration files:
+    
+    * `cd /home/administrator/guacamole`
+    * TODO:  Add the rest...
+
+
+=== Setup the _MinIO_ Virtual Machine
+
+== Installing and Configuring the Services
+Each of the software components that follow are installed as Docker containers.  Each container has its own configuration scheme.  Most of the containers configure themselves and their dependencies automatically on their first run.  This is NOT the case for the OpenLDAP or Guacamole containers.  Follow these instructions in the sequence listed.
+
+=== Installing and Configuring OpenLDAP
+
+The first service that should be setup (if you are using it), is the OpenLDAP.  A separate docker-compose file has been downloaded called `docker-compose.yaml.initializeOpenLDAP`.  It's not clear why this is necessary, as the service entry in the compose file is the same as the normal entry, but it must be run without any other containers operating its first time for configuration to be successful.  This likely indicates some race condition between the setup process and query process, but this is speculation.  To execute this special compose file, use the command prompt to type:
+
+....
+cd /home/administrator/guacamole; docker compose -f docker-compose.yaml.initializeOpenLDAP up&
+....
+
+The `&` at the end of the command is very important.  When output stops streaming to the terminal, wait about another 10 minutes then press `Enter` or `Return` and at the next command prompt type:
+
+....
+docker compose down
+....
+
+The OpenLDAP service should be fully configured at this point.
+
+=== Installing and Configuring MariaDB (for use by Guacamole)
+
+Guacamole does not automatically configure its database (hosted in MariaDB, an opensource version of MySQL).  To do so, you must first enter on the command line:
+
+
+`docker run --rm guacamole/guacamole /opt/guacamole/bin/initdb.sh --mysql > /home/administrator/guacamole/mariadb/init/initdb.sql`
+
+This starts the MariaDB container with the appropriate volume mounts so that the changes we will do next are persisted.  Once the container is up and running, we open a terminal inside the container by typing:
+
+`docker exec -it dc-lab-guac-db /bin/bash`
+
+We will then start the `mysql` client by typing:
+
+`mysql -p`
+
+When prompted enter the lab password you selected in the initial script.  At the resulting `mysql` prompt, create the guacamole database by typing:
+
+`CREATE DATABASE <lab abbreviation>_lab_guac_db;` then
+
+`exit`
+
+After the last command, you should be back at the _containers_ command prompt.  At this prompt, create all of the database tables and relationships by typing:
+
+`cd /docker-entrypoint-initdb.d` then
+
+`cat 1.sql | mysql -p <lab abbreviation>_lab_guac_db`
+
+Now, re-enter the `mysql` client by typing:
+
+`mysql -p`
+
+When prompted enter the lab password you selected in the initial script.  At the `mysql` prompt, grant the appropriate permissions on the new database we have just created.
+
+`CREATE USER 'guac_db_user'@'localhost' IDENTIFIED BY '<lab password>';`
+
+`CREATE USER 'guac_db_user'@'%' IDENTIFIED BY '<lab password>';`
+
+`GRANT SELECT,INSERT,UPDATE,DELETE ON dc_lab_guac_db.* TO 'guac_db_user'@'localhost';`
+
+`GRANT SELECT,INSERT,UPDATE,DELETE ON dc_lab_guac_db.* TO 'guac_db_user'@'%';`
+
+`FLUSH PRIVILEGES;`
+
+`exit`
+
+The guacamole database has now been configured.  Exit the shell into the container by typing:
+
+`exit` again.
+
+Shutdown the temporary Docker container by typing:
+
+`docker ps`
+
+Note the container name, it will be the last column on the line (or second/third line if the line wrapped).
+
+`docker stop <container name>`
+
+`docker container prune`
+
+=== Installing and Configuring phpLDAPAdmin
+
+The phpLDAPAdmin service configures itself automatically based on the environment variables that are passed in the `docker-compose.yaml` file.  You can start the remaining services with the command line by typing:
+
+....
+cd \home\administrator\guacamole; docker compose up&
+....
+
+Without the `-f` flag, Docker reads the file `docker-compose.yaml` by default.
+
+Using a browser located in a VM inside the lab, navigate to `http:\\php-LDAP-Admin.<lab abbreviation>-lab.nccoe.test`.  For OpenLDAP, the login information is:
+
+ * Username: cn=admin,dc=<lab-abbreviation>-lab,dc=nccoe,dc=test
+ * Password: <lab password you selected in the initial script>
+
+Once logging in, you will need to use the tool to create a "Users" entry.
+
+ . In the left sidebar, click the line saying `dc=<lab-abbreviation>-lab,dc=nccoe,dc=test`
+ . Click `Create new entry here`
+ . Choose `Generic: Organisational Unit`
+ . Type `users` and then click `Create Object`
+ . Then on new screen click `Commit`
+
+
+=== Installing and Configuring MariaDB (for use by Keycloak)
+
+Keycloak uses a MariaDB (opensource MySQL clone) to store its configuration and other identity data.  Keycloak automatically configures the database based on the environment variables named in `docker-config.yaml` file.
+
+=== Installing and Configuring Keycloak
+
+. Login and choose Create a Realm from the "Realm" Drop down that probably showes "Master"
+. Give the realm the name "<lab abbreviation>-lab"
+. Make sure the realm you just created is selected in the that Realm drop down now.
+. Add the Ldap identity config
+	. From the side bar, under "Configure" choose User federation
+	. Click the button for "LDAP"
+	. Name the federation entry, "<lab abbreviation>-Lab OpenLDAP Server"
+	. For vendor, choose "Other"
+	. Set up the LDAP connection:
+		* Connection URL: ldap://remote.<lab abbreviation>-lab.nccoe.test
+		* EnableStartTLS: Off
+		* Defaults for everything else
+		* Test the connection and ensure it can reach the Ldap server.
+	. Now configure the bind:
+		* Bind type: simple
+		* Bind DN: cn=admin,dc=<lab abbreviation>-lab,dc=nccoe,dc=test
+		* Bind Credentials:  <lab password chosen in initial script>
+		* Test the authenticated session
+	. Configure the integration type:
+		* Edit Mode: WRITABLE
+		* Users DN: ou=users,dc=<lab abbreviation>-lab,dc=nccoe,dc=test
+		* Username LDAP attribute: uid     (this should be the default if you chose 'other' at first step, if your default is something else you probably chose the wrong provider)
+		* RDN LDAP Attribute: uid   (see above, this should be default)
+		* UUID LDAP attribute: entryUUID   (see above, this should be default)
+		* User object classes:  inetOrgPerson, organizationalPerson   (see above, this should be default)
+	* Enable the LDAPv3 password modify extended operation: (at the very bottom) On
+	* All other settings should be defaulted
+	. Click `save` for the LDAP integration
+. Click Realm settings at the bottom of the left sidebar. 
+	* On the general tab find User-managed access and set to On.
+	* On the Login tab, 
+		* Find User registration and set to On.
+		* Find Forgot passowrd and set to On.
+		* Find Email as username and make sure its Off
+		* Find Login with email and set to On
+	
+==== Creating a Keycloak Client Entry for Guacamole
+
+Select Clients from the sidebar with '<lab abbreviation>-lab' as the selected Realm then ensure the settings are as follows:
+* Client type: OpenID Connect
+* Client ID: guacamole
+* Fill in a name and description
+* Valid redirect URIs:  https://guacamole.<lab abbreviation>-lab.nccoe.test/
+Capability config: Client authentication: off (default)
+* Authentication flow:  Check ONLY standard flow and Implicit Flow 
+
+=== Installing and Configuring Guacamole
+
+Outside of initializing the database, the most important configuration that you must do with Guacamole is completing the configuration of the administrative user.  In our implementation, users are configured in both Guacamole and Keycloak.
+
+When you navigate to the guacamole webpage https://guacamole.<lab-abbreviation>-lab.nccoe.test/guacamole/ , you will be redirected to the Keycloak OpenID Connect client page.  Choose `Register` at the bottom of the login box.  There you will be allowed to create a new account.  The first account you should create is the corresponding `guacadmin` account.  Initially, set the password to `guacadmin` as this is the default account password created by the configuration scripts. You can change it later through Keycloak if you wish.  As configured, all accounts in a Keycloak realm must have unique email addresses, so do not associate the email address you want to use with your primary account when you set that account up.
+
+All guacamole users can create accounts simply by following the instructions above.  Once an account has been created in Keycloak, you can assign that account to groups using the administration console (see <<_administering_guacamole>>).
+
+=== Installing and Configuring Caddy
+
+The initial script ensures all configuration of the Caddy service.  When TLS certificates hit their expiration date, replacements should be copied to the `/home/administratior/guacamole/certs/<service name>`.  Each certificate is represented by two files, a `.crt` file and a `.key` file, both of which should be in PEM format.
+
+=== Installing and Configuring the MinIO Service
+
+NOTE: TODO:  Complete this section.
+
+== Administering the System
+
+NOTE: TODO:  Complete this section.
+
+=== Administering Keycloak
+
+Once the initial configuration is done, there is no additional maintenance that appears to be required for Keycloak.
+
+=== Administering Guacamole
+
+Administrative tasks in Guacamole include configuring connections, adding users to groups, and configuring connection permissions to users or groups.  One suggested way of doing this is to create a number of groups:  NCCoE-Staff, which includes government and MITRE staff, Collaborator-Staff, which would have a sub-group for each of your collaborators.  Each collaborator staff member would be assigned to the appropriate collaborator group.
+
+=== Administering MinIO
+
+NOTE: TODO:  Complete this section.
+
+=== Basic Maintenance
+
+NOTE: TODO:  Complete this section.
+
+== Basic User Guide
+
+NOTE: TODO:  Complete this section.
+
+=== Preparing Your Local Computer
+
+The NCCoE does not currently serve DNS records for lab use like this, so each user will need to manually add host mappings to their operating system.  
+
+On the machine(s) they will be accessing the lab from, add the following mapping to their manual name resolution.  On Mac and Linux machines, that will be `/etc/hosts`.  On Windows10 machines, that will be `C:\windows\system32\drivers\etc\hosts.file`.  On linux and MacOS you will need to use `sudo` to make these edits.  On Windows10 you will need to run your editor as Administrator to edit the file.  Windows Notepad is an acceptable text editor, while Windows Write and Microsoft Office are not.
+
+....
+10.33.50.179    guacamole.dc-lab.nccoe.test
+10.33.50.179    keycloak.dc-lab.nccoe.test
+....
+
+Developers working on this stack or other types of tasks in the lab may also wish to add the following entries:
+ 
+....
+10.33.50.179    remote.dc-lab.nccoe.test
+10.33.50.179    php-ldap-admin.dc-lab.nccoe.test
+10.33.50.180    minio.dc-lab.nccoe.test
+....
+
+After editing the host file on a Mac, you may need to issue the following command to ensure the new contents are used: `dscacheutil -flushcache`.  The Microsoft Edge browswer appears to work better with the hosts file than Safari.
+
+=== Your First Sign-On
+
+NOTE: TODO:  Complete this section.
+
+=== On-Going Use
+
+There are no known items you need to do on an on-going basis beyond adding and removing individuals through Keycloak as members join and leave your team.
+
+Updating the software is accomplished by pulling the latest version of each of the containers using the command `docker pull <container-name>:latest` and then restarting the docker compose stack with `docker compose restart`.  The list of container names can be determined by examining the contents of the `docker-compose.yaml`.
+
+It's encouraged that you take regular backups of your databases.  This can be done in a few ways including shutting down the docker stack with `docker compose down`, creating a tar archive of the `/home/administrator/guacamole` folder, and then restarting the docker stack with `docker compose up&`.  It is intended that in the future these tar archives can be stored in the MinIO server.
+
+NOTE:  TODO: Add instructions for creating a compressed tar archive.
+
+NOTE:  TODO: Add instructions for storing and retrieving compressed tar archives from MinIO.
+
+NOTE:  TODO: Add instructions for restoring a tar archive to the folder.
+
+== Potential Future Enhancements
+
+NOTE: TODO:  Complete this section.

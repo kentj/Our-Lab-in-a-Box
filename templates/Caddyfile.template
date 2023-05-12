@@ -1,0 +1,21 @@
+http://remote.${labName}.nccoe.${fqdnEnding} {
+  file_server
+}
+
+guacamole.${labName}.nccoe.${fqdnEnding} {
+  tls /certs/guacamole/guacamole.${labName}.nccoe.${fqdnEnding}.crt /certs/guacamole/guacamole.${labName}.nccoe.${fqdnEnding}.key
+
+  handle /guacamole/* {
+    reverse_proxy ${labName}-guacamole:8080
+  }  
+}
+
+keycloak.${labName}.nccoe.${fqdnEnding} {
+    tls /certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.crt /certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.key
+    reverse_proxy ${labName}-keycloak:80
+}
+
+http://php-ldap-admin.${labName}.nccoe.${fqdnEnding} {
+  reverse_proxy ${labName}-phpldapadmin:80
+}
+
