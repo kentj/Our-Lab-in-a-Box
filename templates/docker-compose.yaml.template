@@ -9,30 +9,30 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - $PWD/caddy/Caddyfile:/etc/caddy/Caddyfile
-      - $PWD/caddy/data:/data
-      - $PWD/caddy/config:/config
-      - $PWD/caddy:/srv
-      - $PWD/certs:/certs
+      - $$PWD/caddy/Caddyfile:/etc/caddy/Caddyfile
+      - $$PWD/caddy/data:/data
+      - $$PWD/caddy/config:/config
+      - $$PWD/caddy:/srv
+      - $$PWD/certs:/certs
 
   guacdb:
     container_name: ${labName}-guac-db
     image: mariadb:jammy
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      MYSQL_ROOT_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
       MYSQL_DATABASE: ${labName}_guac_db
       MYSQL_USER: guac_db_user
-      MYSQL_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      MYSQL_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
     healthcheck:
-      test: mysqladmin -p$${${labName_Underscored}_PASSWORD} ping -h localhost
+      test: mysqladmin -p$${${labNameUnderscoredUpper}_PASSWORD} ping -h localhost
       interval: 10s
       start_period: 10s
       timeout: 10s
       retries: 3
     volumes:
-      - $PWD/mariadb/databases:/var/lib/mysql
-      - $PWD/mariadb/init/initdb.sql:/docker-entrypoint-initdb.d/1.sql
+      - $$PWD/mariadb/databases:/var/lib/mysql
+      - $$PWD/mariadb/init/initdb.sql:/docker-entrypoint-initdb.d/1.sql
 
   guacd:
     container_name: ${labName}-guacd
@@ -50,9 +50,9 @@ services:
     environment:
       GUACD_HOSTNAME: ${labName}-guacd
       MYSQL_HOSTNAME: ${labName}-guac-db
-      MYSQL_DATABASE: ${labName_Underscored}_guac_db
+      MYSQL_DATABASE: ${labNameUnderscoredUpper}_guac_db
       MYSQL_USER: guac_db_user
-      MYSQL_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      MYSQL_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
       MYSQL_AUTO_CREATE_ACCOUNTS: true
       OPENID_AUTHORIZATION_ENDPOINT: https://keycloak.${labName}.nccoe.${fqdnEnding}/realms/${labName}/protocol/openid-connect/auth
       OPENID_JWKS_ENDPOINT: https://keycloak.${labName}.nccoe.${fqdnEnding}/realms/${labName}/protocol/openid-connect/certs
@@ -92,7 +92,7 @@ services:
       LDAP_ORGANISATION: "NCCoE"
       LDAP_DOMAIN: "${labName}.nccoe.${fqdnEnding}"
       LDAP_BASE_DN: "dc=${labName},dc=nccoe,dc=${fqdnEnding}"
-      LDAP_ADMIN_PASSWORD: $${${labName_Underscored}_LAB_PASSWORD}
+      LDAP_ADMIN_PASSWORD: $${${labNameUnderscoredUpper}_LAB_PASSWORD}
       LDAP_OPENLDAP_UID: 1000
       LDAP_OPENLDAP_GID: 1000
       LDAP_TLS: false
@@ -102,9 +102,9 @@ services:
       timeout: 5s
       retries: 15
     volumes:
-      - $PWD/openldap/slapd/database:/var/lib/ldap
-      - $PWD/openldap/slapd/config:/etc/ldap/slapd.d
-      - $PWD/certs:/container/service/slapd/assets/certs/
+      - $$PWD/openldap/slapd/database:/var/lib/ldap
+      - $$PWD/openldap/slapd/config:/etc/ldap/slapd.d
+      - $$PWD/certs:/container/service/slapd/assets/certs/
 
   keycloak:
     depends_on:
@@ -123,10 +123,10 @@ services:
       retries: 15
     environment:
       KEYCLOAK_ADMIN: 'admin'
-      KEYCLOAK_ADMIN_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      KEYCLOAK_ADMIN_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
       KC_DB: mariadb
       KC_DB_URL: "jdbc:mariadb://${labName}-keycloak-db/${labName}-keycloak-db"
-      KC_DB_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      KC_DB_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
       KC_DB_USERNAME: ${labName}-keycloak-db-user
       KC_HEALTH_ENABLED: true
       KC_METRICS_ENABLED: true
@@ -135,8 +135,8 @@ services:
       KC_PROXY: edge
       GUACAMOLE_HOSTNAME: ${GUACAMOLE_HOSTNAME}
     volumes:
-      - $PWD/keycloak/${labName}-realm.json:/opt/keycloak/data/import/realm.json
-      - $PWD/certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.p12:/opt/keycloak/conf/keycloak.${dcName}.nccoe.${fqdnEnding}.p12      
+      - $$PWD/keycloak/${labName}-realm.json:/opt/keycloak/data/import/realm.json
+      - $$PWD/certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.p12:/opt/keycloak/conf/keycloak.${dcName}.nccoe.${fqdnEnding}.p12      
 
   keycloakdb:
     image: mariadb:jammy
@@ -154,5 +154,5 @@ services:
       timeout: 10s
       retries: 3
     volumes:
-      - '$PWD/mariadb/data:/var/lib/mysql'
-      - '$PWD/mariadb/init/initdb.sql:/docker-entrypoint-initdb.d/1.sql'
+      - '$$PWD/mariadb/data:/var/lib/mysql'
+      - '$$PWD/mariadb/init/initdb.sql:/docker-entrypoint-initdb.d/1.sql'

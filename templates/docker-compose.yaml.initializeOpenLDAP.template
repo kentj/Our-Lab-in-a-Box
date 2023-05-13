@@ -2,7 +2,7 @@ version: '3.1'
 services:
 
   openldap:
-    container_name: ${lab-abbreviation}-lab-openldap
+    container_name: ${labAbbreviation}-lab-openldap
     image: osixia/openldap:stable
     restart: unless-stopped
     ports:
@@ -11,14 +11,14 @@ services:
     command: [--copy-service,  --loglevel, debug]
     environment:
       LDAP_ORGANISATION: "NCCoE"
-      LDAP_DOMAIN: "${lab-abbreviation}-lab.nccoe.${fqdn-ending}"
-      LDAP_BASE_DN: "dc=${lab-abbreviation}-lab,dc=nccoe,dc=${fqdn-ending}"
-      LDAP_ADMIN_PASSWORD: ${DC_LAB_PASSWORD}
+      LDAP_DOMAIN: "${labAbbreviation}-lab.nccoe.${fqdn-ending}"
+      LDAP_BASE_DN: "dc=${labAbbreviation}-lab,dc=nccoe,dc=${fqdn-ending}"
+      LDAP_ADMIN_PASSWORD: $${DC_LAB_PASSWORD}
       LDAP_OPENLDAP_UID: 1000
       LDAP_OPENLDAP_GID: 1000
       LDAP_TLS: false
     volumes:
-      - $PWD/openldap/slapd/database:/var/lib/ldap
-      - $PWD/openldap/slapd/config:/etc/ldap/slapd.d
-      - $PWD/certs:/container/service/slapd/assets/certs/
+      - $$PWD/openldap/slapd/database:/var/lib/ldap
+      - $$PWD/openldap/slapd/config:/etc/ldap/slapd.d
+      - $$PWD/certs:/container/service/slapd/assets/certs/
 
