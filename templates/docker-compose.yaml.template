@@ -136,7 +136,7 @@ services:
       GUACAMOLE_HOSTNAME: $${GUACAMOLE_HOSTNAME}
     volumes:
       - $$PWD/keycloak/${labName}-realm.json:/opt/keycloak/data/import/realm.json
-      - $$PWD/certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.p12:/opt/keycloak/conf/keycloak.${dcName}.nccoe.${fqdnEnding}.p12      
+      - $$PWD/certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.p12:/opt/keycloak/conf/keycloak.${labName}.nccoe.${fqdnEnding}.p12      
 
   keycloakdb:
     image: mariadb:jammy
