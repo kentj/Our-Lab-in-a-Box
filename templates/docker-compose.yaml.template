@@ -69,7 +69,7 @@ services:
       LDAP_USERNAME_ATTRIBUTE: "uid"
       LDAP_GROUP_BASE_DN: "ou=Groups,dc=${labName},dc=nccoe,dc=${fqdnEnding}"
       LDAP_SEARCH_BIND_DN: "cn=Admin,dc=${labName},dc=nccoe,dc=${fqdnEnding}"
-      LDAP_SEARCH_BIND_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      LDAP_SEARCH_BIND_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
 
   phpldapadmin:
     image: osixia/phpldapadmin:stable
@@ -143,12 +143,12 @@ services:
     container_name: ${labName}-keycloak-db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      MYSQL_ROOT_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
       MYSQL_DATABASE: ${labName}-keycloak-db
       MYSQL_USER: ${labName}-keycloak-db-user
-      MYSQL_PASSWORD: $${${labName_Underscored}_PASSWORD}
+      MYSQL_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
     healthcheck:
-      test: mysqladmin -p$${${labName_Underscored}_PASSWORD} ping -h localhost
+      test: mysqladmin -p$${${labNameUnderscoredUpper}_PASSWORD} ping -h localhost
       interval: 10s
       start_period: 10s
       timeout: 10s
