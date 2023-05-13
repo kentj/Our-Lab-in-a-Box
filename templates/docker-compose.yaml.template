@@ -133,7 +133,7 @@ services:
       KC_HTTP_PORT: 80
       KC_HOSTNAME_STRICT: false
       KC_PROXY: edge
-      GUACAMOLE_HOSTNAME: ${GUACAMOLE_HOSTNAME}
+      GUACAMOLE_HOSTNAME: $${GUACAMOLE_HOSTNAME}
     volumes:
       - $$PWD/keycloak/${labName}-realm.json:/opt/keycloak/data/import/realm.json
       - $$PWD/certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.p12:/opt/keycloak/conf/keycloak.${dcName}.nccoe.${fqdnEnding}.p12      
