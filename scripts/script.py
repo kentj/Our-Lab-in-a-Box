@@ -55,6 +55,9 @@ variables['labAbbreviation'] = labAbbreviation.lower()
 fqdnEnding = getInput("Final segment of lab's FQDN (org, test, etc): ")
 variables['fqdnEnding'] = fqdnEnding
 
+labPassword = getInput("Global lab administrator password: ")
+variables['labPassword'] = labPassword
+
 print("Lab-in-a-Box Setup and Configuration Tool v0.1")
 print("----------------------------------------------\n")
 print("Summary of your inputs and calculated values: ")
@@ -66,6 +69,7 @@ variables['labName'] = labName
 variables['labNameUnderscoredUpper'] = labNameUnderscoredUpper
 print(f"02a: Lab Name: {labName}")
 print(f"02b: Lab Name UnderScore Uppercase: {labNameUnderscoredUpper}")
+print(f"03a: Lab password: {labPassword}")
 print(f"03: Lab FQDN ending: {fqdnEnding}")
 rootCADirectory = labAbbreviation.upper() + "-Lab-CA"
 variables['rootCADirectory'] = rootCADirectory
