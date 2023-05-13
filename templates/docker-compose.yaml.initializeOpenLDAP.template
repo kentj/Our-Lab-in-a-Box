@@ -11,9 +11,9 @@ services:
     command: [--copy-service,  --loglevel, debug]
     environment:
       LDAP_ORGANISATION: "NCCoE"
-      LDAP_DOMAIN: "${labAbbreviation}-lab.nccoe.${fqdn-ending}"
-      LDAP_BASE_DN: "dc=${labAbbreviation}-lab,dc=nccoe,dc=${fqdn-ending}"
-      LDAP_ADMIN_PASSWORD: $${DC_LAB_PASSWORD}
+      LDAP_DOMAIN: "${labAbbreviation}-lab.nccoe.${fqdnEnding}"
+      LDAP_BASE_DN: "dc=${labAbbreviation}-lab,dc=nccoe,dc=${fqdnEnding}"
+      LDAP_ADMIN_PASSWORD: $${${labNameUnderscoredUpper}_LAB_PASSWORD}
       LDAP_OPENLDAP_UID: 1000
       LDAP_OPENLDAP_GID: 1000
       LDAP_TLS: false
