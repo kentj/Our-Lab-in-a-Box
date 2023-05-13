@@ -67,10 +67,10 @@ labName = labAbbreviation + "-lab"
 labNameUnderscoredUpper = (labAbbreviation + "_lab").upper()
 variables['labName'] = labName
 variables['labNameUnderscoredUpper'] = labNameUnderscoredUpper
-print(f"02a: Lab Name: {labName}")
-print(f"02b: Lab Name UnderScore Uppercase: {labNameUnderscoredUpper}")
-print(f"03a: Lab password: {labPassword}")
-print(f"03: Lab FQDN ending: {fqdnEnding}")
+print(f"02: Lab Name: {labName}")
+print(f"03: Lab Name UnderScore Uppercase: {labNameUnderscoredUpper}")
+print(f"04: Lab password: {labPassword}")
+print(f"05: Lab FQDN ending: {fqdnEnding}")
 rootCADirectory = labAbbreviation.upper() + "-Lab-CA"
 variables['rootCADirectory'] = rootCADirectory
 rootCA_certificate_file = rootCADirectory + '.crt'
@@ -78,9 +78,9 @@ variables['rootCA_certificate_file'] = rootCA_certificate_file
 rootCA_certificate_key_file = rootCADirectory + ".key"
 variables['rootCA_certificate_key_file'] = rootCA_certificate_key_file
 
-print(f"04: Lab Root Certificate Authority Directory: {rootCADirectory}")
-print(f"05. Lab Root CA Certificate File: {rootCA_certificate_file}")
-print(f"06. Lab Root CA Certificate Key File: {rootCA_certificate_key_file}")
+print(f"06: Lab Root Certificate Authority Directory: {rootCADirectory}")
+print(f"06a. Lab Root CA Certificate File: {rootCA_certificate_file}")
+print(f"06b. Lab Root CA Certificate Key File: {rootCA_certificate_key_file}")
 
 lab_base_URL = f"{labName}.nccoe.{fqdnEnding}"
 variables['lab_base_URL'] = lab_base_URL
@@ -95,29 +95,29 @@ guacamole_certificate_file = 'guacamole.' + certificate_file_suffix
 variables['guacamole_certificate_file'] = guacamole_certificate_file
 guacamole_certificate_key_file = 'guacamole.' + certificate_key_file_suffix
 variables['guacamole_certificate_key_file'] = guacamole_certificate_key_file
-print(f"08. Guacamole Certificate File: {guacamole_certificate_file}")
-print(f"09. Guacamole Certificate Key File: {guacamole_certificate_key_file}")
+print(f"08a. Guacamole Certificate File: {guacamole_certificate_file}")
+print(f"08b. Guacamole Certificate Key File: {guacamole_certificate_key_file}")
 
 keycloak_certificate_file = 'keycloak.' + certificate_file_suffix
 variables['keycloak_certificate_file'] = keycloak_certificate_file
 keycloak_certificate_key_file = 'keycloak.' + certificate_key_file_suffix
 variables['keycloak_certificate_key_file'] = keycloak_certificate_key_file
-print(f"10. Keycloak Certificate File: {keycloak_certificate_file}")
-print(f"11. Keycloak Certificate Key File: {keycloak_certificate_key_file}")
+print(f"09a. Keycloak Certificate File: {keycloak_certificate_file}")
+print(f"09b. Keycloak Certificate Key File: {keycloak_certificate_key_file}")
 
 minio_certificate_file = 'minio.' + certificate_file_suffix
 variables['minio_certificate_file'] = minio_certificate_file
 minio_certificate_key_file = 'minio.' + certificate_key_file_suffix
 variables['minio_certificate_key_file'] = minio_certificate_key_file
-print(f"12. MinIO Certificate File: {minio_certificate_file}")
-print(f"13. MinIO Certificate Key File: {minio_certificate_key_file}")
+print(f"10a. MinIO Certificate File: {minio_certificate_file}")
+print(f"10b. MinIO Certificate Key File: {minio_certificate_key_file}")
 
 remote_certificate_file = 'remote.' + certificate_file_suffix
 variables['remote_certificate_file'] = remote_certificate_file
 remote_certificate_key_file = 'remote.' + certificate_key_file_suffix
 variables['remote_certificate_key_file'] = remote_certificate_key_file
-print(f"14. Remote Certificate File: {remote_certificate_file}")
-print(f"15. Remote Certificate Key File: {remote_certificate_key_file}")
+print(f"11a. Remote Certificate File: {remote_certificate_file}")
+print(f"11b. Remote Certificate Key File: {remote_certificate_key_file}")
 
 print("\nMaking system changes...\n")
 print("Step 1:  Creating directories...")
