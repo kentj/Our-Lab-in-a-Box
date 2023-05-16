@@ -40,7 +40,7 @@ This document describes an approach, accompanied by a high-level architectural d
 
 === Summary Approach for Deployment
 
-As you can see from the architecture diagram, the approach uses a single docker container running most of the software components used to allow self-service of lab participant identity, including username selection, password changes, and in the future, password resets by email.  Apache Guacamole includes basic authentication and authorization capabilities internally, but can defer authentication to outside identity providers such as Keycloak or LDAP providers.  In our setup, Apache Guacamole defers authentication to Keycloak.  Keycloak provides an OpenID Connect-based authentication feature that Guacamole defers to.  Keycloak in turn can manage multiple realms.  We set up a realm to manage lab users.  This realm is configured to federate identity information with an OpenLDAP server.  In the future, OpenLDAP may be exchanged with ActiveDirectory to faciliate single-sign-on (SSO) with Windows machines operating in the lab.  Currently, with OpenLDAP, only linux machines can be configured for SSO.
+As you can see from the architecture diagram, the approach uses a single server running Docker to run, in Docker containers, most of the software components used to allow self-service of lab participant identity, including username selection, password changes, and in the future, password resets by email.  Apache Guacamole includes basic authentication and authorization capabilities internally, but can defer authentication to outside identity providers such as Keycloak or LDAP providers.  In our setup, Apache Guacamole defers authentication to Keycloak.  Keycloak provides an OpenID Connect-based authentication feature that Guacamole defers to.  Keycloak in turn can manage multiple realms.  We set up a realm to manage lab users.  This realm is configured to federate identity information with an OpenLDAP server.  In the future, OpenLDAP may be exchanged with ActiveDirectory to faciliate single-sign-on (SSO) with Windows machines operating in the lab.  Currently, with OpenLDAP, only linux machines can be configured for SSO.
 
 As best practice for Docker/containerization, each database is hosted by a separate MariaDB container instance.  In the current build there are two databases, one configured for Guacamole to store credential and authorization information, and one for Keycloak for storing and managing credential information for the lab realm.
 
@@ -56,11 +56,21 @@ To make automatic configuration of this environment possible, the lab should use
 
 ==== VM and Service Naming Conventions
 
+Most of the services, systems, and related resources will be named based on a short abbreviation of your lab name.  This abbreviation should be at least four characters long and should be as unique as you can make it.  Additionally, your lab will have a fully-qualified domain name (FQDN) associated with it.  This FQDN will be of the form <lab-abbreviation>-lab.nccoe.<suffix>.  You will specify the suffix to be used.  The default to use for a suffix is "test".  If you will be accessing these machines outside of the lab environment, you may wish to use "org".
+
+NOTE: If you use .org as the suffix for your lab's FQDN, you may need to take additional steps for acquiring externally useable SSL certificates.
+
+Based on your lab abbreviation and FQDN suffix, a script will compute the FQDN of each of the virtual servers, docker containers, and related resources
+
 NOTE: TODO:  Complete this section.
 
 ==== The Configuration Script
 
-NOTE: TODO:  Complete this section.
+This document describes the components of the access control platform and how each is configured with the goal that the instructions would allow you to configure the components by hand.  However, the lengthy configuration files and numerous places for verbose and repetitive replacements lend this task to automation.  To simplify lab setup, a python script has been provided that asks a few simple questions and then produces customized configuration files that should dramatically simplify configuring the lab.
+
+If you choose to use the configuration script, do so after the steps for establishing the jumpbox VM using the base docker image (<<_setup_the_remote_virtual_machine>>)
+
+The script can be found at https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/script.py[].  Use curl or wget from the CLI of the docker server named remote.
 
 === DNS Configurations
 In your DNS server (pfSense in the default lab install) set up the name resolutions required by your lab.  Using pfSense, this is accomplished from the `Services` then `DNS Resolver` menu selection.
@@ -76,6 +86,8 @@ On the General Settings tab, ensure the pfSense `DNS Resolver` is enabled.  Then
  . minio.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.4
  . remote.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
  . ad.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.5
+
+Make sure you choose to `Apply Changes` before exiting the DNS Resolver interface of pfSense.
 
 === Certificate Authority Configurations
 
@@ -139,7 +151,16 @@ Complete the remaining steps, including export of the certificate and keys as ab
 
 === Creating the Server Certificates
 
-NOTE: TODO:  Complete this section.
+NOTE: TODO:  Complete this section.  Insert the pictures.  Pull in the appropriate IP addresses from above.
+
+Create *server* certificates for the following machines:
+
+. guacamole.<labname>-lab.nccoe.<fqdn>
+. keycloak.<labname>-lab.nccoe.<fqdn>
+. minio.<labname>-lab.nccoe.<fqdn>
+. remote.<labname>-lab.nccoe.<fqdn>
+
+After creating each certficate, export the certificate, the key, and the p12 file for each.
 
 == Setup the Virtual Machines
 
