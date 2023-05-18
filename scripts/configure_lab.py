@@ -38,7 +38,7 @@ def main():
 
    config = configparser.ConfigParser()
    try:
-      config.read('config.ini')
+      config.read('lab_config.ini')
    except:
       print("Couldn't read the config.ini. Aborting.")
       exit()

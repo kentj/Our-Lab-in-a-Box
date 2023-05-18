@@ -6,10 +6,10 @@ Instructions for building a working environment can be found under "documentatio
 
 To download the script, use:
 
-`curl -LO  https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/script.py`
+`curl -LO  https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/configure_lab.py`
 
 You can download the example config.ini file for the script using:
 
-`curl -LO  https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/config.ini`
+`curl -LO  https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/lab_config.ini`
 
 
