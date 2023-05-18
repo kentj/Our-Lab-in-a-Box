@@ -70,7 +70,9 @@ This document describes the components of the access control platform and how ea
 
 If you choose to use the configuration script, do so after the steps for establishing the jumpbox VM using the base docker image (<<_setup_the_remote_virtual_machine>>)
 
-The script can be found at https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/script.py[].  Use curl or wget from the CLI of the docker server named remote.
+The script can be found at https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/script.py[].  Use curl or wget on the command-line of the home folder on the Docker server that will host the services.
+
+`curl -LO https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/script.py`
 
 === DNS Configurations
 In your DNS server (pfSense in the default lab install) set up the name resolutions required by your lab.  Using pfSense, this is accomplished from the `Services` then `DNS Resolver` menu selection.
@@ -175,6 +177,7 @@ To create our base docker image, we will follow three steps:  fixing the configu
 The out of the box Ubuntu 20.04 image has a configuration setting that prevents the box from running software updates and software installs.  You must comment out two lines in a configuration file to allow _apt_ to work correctly.
 
 * `sudo pico /etc/apt/apt.conf.d/90curtin-aptproxy`
+* `sudo pico /etc/apt/apt.conf.d/proxy.conf`
 * place a `#` in front of each line in the file
 * Press `Ctrl-x`
 * Press `y`
