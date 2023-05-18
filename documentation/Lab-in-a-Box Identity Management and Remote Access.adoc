@@ -74,6 +74,10 @@ The script can be found at https://raw.githubusercontent.com/kentj/Our-Lab-in-a-
 
 `curl -LO https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/script.py`
 
+The example config.ini file can be downloaded using:
+
+`curl -LO https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/config.ini`
+
 === DNS Configurations
 In your DNS server (pfSense in the default lab install) set up the name resolutions required by your lab.  Using pfSense, this is accomplished from the `Services` then `DNS Resolver` menu selection.
 
