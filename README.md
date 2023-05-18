@@ -12,4 +12,4 @@ You can download the example config.ini file for the script using:
 
 `curl -LO  https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/lab_config.ini`
 
-
+Make sure you check each entry in `lab_config.ini` to make sure it is sensible for your lab.  
