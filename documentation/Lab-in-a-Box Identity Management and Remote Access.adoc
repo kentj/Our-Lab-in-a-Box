@@ -66,17 +66,17 @@ NOTE: TODO:  Complete this section.
 
 ==== The Configuration Script
 
-This document describes the components of the access control platform and how each is configured with the goal that the instructions would allow you to configure the components by hand.  However, the lengthy configuration files and numerous places for verbose and repetitive replacements lend this task to automation.  To simplify lab setup, a python script has been provided that asks a few simple questions and then produces customized configuration files that should dramatically simplify configuring the lab.
+This document describes the components of the access control platform and how each is configured with the goal that the instructions would allow you to configure the components by hand.  However, the lengthy configuration files and numerous places for verbose and repetitive replacements lend this task to automation.  To simplify lab setup, a python script has been provided that reads a few configuration settings from a file and then produces customized configuration files that should dramatically simplify configuring the lab.
 
 If you choose to use the configuration script, do so after the steps for establishing the jumpbox VM using the base docker image (<<_setup_the_remote_virtual_machine>>)
 
-The script can be found at https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/script.py[].  Use curl or wget on the command-line of the home folder on the Docker server that will host the services.
+The script can be found at https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/configure_lab.py[].  Use curl or wget on the command-line of the home folder on the Docker server that will host the services.
 
-`curl -LO https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/script.py`
+`curl -LO https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/configure_lab.py`
 
-The example config.ini file can be downloaded using:
+The example lab_config.ini file can be downloaded using:
 
-`curl -LO https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/config.ini`
+`curl -LO https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/lab_config.ini`
 
 === DNS Configurations
 In your DNS server (pfSense in the default lab install) set up the name resolutions required by your lab.  Using pfSense, this is accomplished from the `Services` then `DNS Resolver` menu selection.
@@ -209,7 +209,7 @@ The _remote_ VM is where the _Guacamole_ related Docker containers will be deplo
 
  . Clone the template Docker VM in vSphere and name the clone "Remote" in vSphere.
  . Configure the virtual machine networking stack:
-    * Edit _/etc/netplan/50-cloud-init.yaml_ to assign the VM a static IPv4 address.  We selected _192.168.1.2_.
+    * Edit _/etc/netplan/50-cloud-init.yaml_ to assign the VM a static IPv4 address.  We selected _192.168.1.2_.  Use a value that makes sense for your lab.
     * Edit _/etc/netplan/50-cloud-init.yaml_ to ensure the VM DNS servers point to the pfSense DNS server.
     +
     * After both edits, the file should look something like this:
@@ -238,34 +238,22 @@ The _remote_ VM is where the _Guacamole_ related Docker containers will be deplo
 remote.dc-lab.nccoe.test
 ....
 
- . Create a folder in the _administrator_ home directory to hold the container files.
+ . Use _curl_ to download the template configuration script and configuration file(instructions found at <<_the_configuration_script>>).  Once you've modified the `lab_config.ini` file to reflect the values for your lab. It will create the appropriate directories, download each of the major configuration files, substitute in your answers and move the configuration file to the appropriate location in the file tree.  Execute the script by typing:
     
-    * `mkdir /home/administrator/guacamole`    
-    * `cd /home/administrator/guacamole`
-    * `mkdir mariadb`
-    * `mkdir mariadb/databases`
-    * `mkdir mariadb/init`
-    * `mkdir caddy`
-    * `mkdir caddy/config`
-    * `mkdir caddy/data`
-    * `mkdir certs`
-    * `mkdir certs/CA`
-    * `mkdir certs/guacamole`
-    * `mkdir guacamole_build`
+* `python3 configure_lab.py`
 
- . Use _curl_ to download the template configuration script and then execute the script.  Answer the questions from the script.  It will download each of the major configuration files, substitute in your answers and move the configuration file to the appropriate location in the file tree.
+ . The following configuration and support files are created by the script:
     
-    * `cd /home/administrator/guacamole`
-    * `curl <url>`
-    * `python3 configure_lab.py`
-
- . The following templates are completed to create the configuration files:
-    
-    * `cd /home/administrator/guacamole`
-    * TODO:  Add the rest...
-
+    * guacamole/caddy/Caddyfile
+    * guacamole/caddy_reload.sh
+    * guacamole/docker-compose.yaml
+    * guacamole/docker-compose.yaml.initializeOpenLDAP
+    * guacamole/.env
+    * guacamole/guacamole_build/Dockerfile
 
 === Setup the _MinIO_ Virtual Machine
+
+NOTE: minIO integration for backup purposes has not been written yet.
 
 == Installing and Configuring the Services
 Each of the software components that follow are installed as Docker containers.  Each container has its own configuration scheme.  Most of the containers configure themselves and their dependencies automatically on their first run.  This is NOT the case for the OpenLDAP or Guacamole containers.  Follow these instructions in the sequence listed.
@@ -274,15 +262,11 @@ Each of the software components that follow are installed as Docker containers. 
 
 The first service that should be setup (if you are using it), is the OpenLDAP.  A separate docker-compose file has been downloaded called `docker-compose.yaml.initializeOpenLDAP`.  It's not clear why this is necessary, as the service entry in the compose file is the same as the normal entry, but it must be run without any other containers operating its first time for configuration to be successful.  This likely indicates some race condition between the setup process and query process, but this is speculation.  To execute this special compose file, use the command prompt to type:
 
-....
-cd /home/administrator/guacamole; docker compose -f docker-compose.yaml.initializeOpenLDAP up&
-....
+`cd /home/administrator/guacamole; docker compose -f docker-compose.yaml.initializeOpenLDAP up&`
 
 The `&` at the end of the command is very important.  When output stops streaming to the terminal, wait about another 10 minutes then press `Enter` or `Return` and at the next command prompt type:
 
-....
-docker compose down
-....
+`docker compose down`
 
 The OpenLDAP service should be fully configured at this point.
 
@@ -349,9 +333,7 @@ Note the container name, it will be the last column on the line (or second/third
 
 The phpLDAPAdmin service configures itself automatically based on the environment variables that are passed in the `docker-compose.yaml` file.  You can start the remaining services with the command line by typing:
 
-....
-cd \home\administrator\guacamole; docker compose up&
-....
+`cd \home\administrator\guacamole; docker compose up&`
 
 Without the `-f` flag, Docker reads the file `docker-compose.yaml` by default.
 
