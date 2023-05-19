@@ -81,19 +81,33 @@ The example lab_config.ini file can be downloaded using:
 === DNS Configurations
 In your DNS server (pfSense in the default lab install) set up the name resolutions required by your lab.  Using pfSense, this is accomplished from the `Services` then `DNS Resolver` menu selection.
 
-NOTE:  TODO: Add screen shots for this section.
+.pfSense Configure DNS Resolver
+image::Open-pfSense-DNS-Resolver-Service.png[]
 
-On the General Settings tab, ensure the pfSense `DNS Resolver` is enabled.  Then add entries for the following machines in the Host Overrides section of the same page:
+On the General Settings tab, ensure the pfSense `DNS Resolver` is enabled.
 
- . guacamole.[labname]-lab.nccoe.test -> ipAddr: 192.168.0.2 
- . keycloak.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
- . php-ldap-admin.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
- . openldap.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
- . minio.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.4
- . remote.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.2
- . ad.[labname]-lab.nccoe.test -> ipAddr: 192.168.1.5
+.pfSense Enable DNS Resolver Service
+image::Main-menu-pfSense-DNS-Resolver.png[]
+
+To add a host entry, click the `Add` button just below and to the far right of the Host Overrides section of the page.
+
+.pfSense Add Host Resolver Entry
+image::Add-Host-pfSense-DNS-Resolver.png[]
+
+Add entries for the following machines in the Host Overrides section, using the IP addresses appropriate for your lab setup:
+
+ . guacamole.[labname]-lab.nccoe.test (IP Address: 192.168.0.2)
+ . keycloak.[labname]-lab.nccoe.test (IP Address: 192.168.0.2)
+ . php-ldap-admin.[labname]-lab.nccoe.test  (IP Address: 192.168.0.2)
+ . openldap.[labname]-lab.nccoe.test (IP Address: 192.168.0.2)
+ . minio.[labname]-lab.nccoe.test (IP Address: 192.168.0.4)
+ . remote.[labname]-lab.nccoe.test (IP Address: 192.168.0.2)
+ . ad.[labname]-lab.nccoe.test (IP Address: 192.168.0.5)
 
 Make sure you choose to `Apply Changes` before exiting the DNS Resolver interface of pfSense.
+
+.pfSense Apply DNS Resolver Changes
+image::Apply-Changes-DNS-Resolver.png[]
 
 === Certificate Authority Configurations
 
@@ -396,11 +410,12 @@ Keycloak uses a MariaDB (opensource MySQL clone) to store its configuration and 
 ==== Creating a Keycloak Client Entry for Guacamole
 
 Select Clients from the sidebar with '<lab abbreviation>-lab' as the selected Realm then ensure the settings are as follows:
+
 * Client type: OpenID Connect
 * Client ID: guacamole
 * Fill in a name and description
 * Valid redirect URIs:  https://guacamole.<lab abbreviation>-lab.nccoe.test/
-Capability config: Client authentication: off (default)
+* Capability config: Client authentication: off (default)
 * Authentication flow:  Check ONLY standard flow and Implicit Flow 
 
 === Installing and Configuring Guacamole
