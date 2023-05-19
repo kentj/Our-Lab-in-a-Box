@@ -78,20 +78,133 @@ The example lab_config.ini file can be downloaded using:
 
 `curl -LO https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/lab_config.ini`
 
+=== Firewall Configurations
+
+The firewall must be configured to all access into the lab.  In pfSense, this will be accomplished by establishing two Network Address Translation (NAT) rules.  NCCoE labs generally do not use routable IP addresses inside the lab, including private IPs in the 10.0.0.0/8 and 192.168.0.0/16 network blocks.  NAT intercepts traffic with routable IP addresses and forwards the traffic to a machine in your network with a non-routable IP address (such as 192.168.0.2 in our running example).  These forwards are bi-directional, allowing the internal server to respond to the original client.  pfSense typically blocks or drops traffic at the firewall by default.  When you create these NAT rules through the pfSense UI, it will automatically create additional firewall rules that will allow traffic to the HTTP and HTTPS ports.
+
+Access into the lab will be through the NCCoE GlobalProtect VPN.  The VPN allows an individual to connect from the Internet, and then gives them an IP address into the NCCoE private corporate network.  The VPN is configured to give NCCoE government and MITRE staff an IP address in one range, and Vendor/Collaborator staff an IP address in a different range.  The NCCoE staff IP address range allows access to your WAN network addresses, plus other services such as gitlab, the wiki, and the vSphere console.  The Vendor/Collaborator staff address range is restricted to accessing IP addresses on your VENDORNET network.  This means to support both types of staff, your lab will have two entry points, one on your WAN network, and one on your VENDORNET network.  The IP addresses for your WAN and VENDORNET segments were provided to you by IT OPs at the time your lab was established.  You need to select one from each list.
+
+The network information provided from IT Ops comes with four pieces of information:  VLAN, Network, GW, Netmask.  Here is an example of one configuration:
+
+.Example NCCoE Staff Access Network Information
+[cols='1,6']
+|===
+|*VLAN*
+|WAN
+
+|*Network*
+|10.32.50.32/28
+
+|*Gateway*
+|10.32.50.33
+
+|*Netmask*
+|255.255.255.240
+|===
+
+The first IP address in each list is your network gateway and can not be used.  The first usable IP address in this example is 10.32.50.34.
+
+An example from a collaborator's perspective, with a first usable address being 10.32.50.50:
+
+.Example Collaborator Access Network Information
+[cols='1,6']
+|===
+|*VLAN*
+|VENDORNET
+
+|*Network*
+|10.32.50.48/28
+
+|*Gateway*
+|10.32.50.49
+
+|*Netmask*
+|255.255.255.240
+|===
+
+The netmask is used to compute the size of the IP address range.  In the two examples, the netmask 240 means only the last 4 bits can be used, giving an IP address range in the last example of 10.32.50.48-10.32.50.63.  The first address is reserved for the network name (.48), the second address is reserved for the gateway (.49) and the last address is reserved for the network broadcast address (.63) meaning the usable IP addresses are 10.32.50.50 through 10.32.50.62.  You can find a network address calculator at https://www.calculator.net/ip-subnet-calculator.html[].
+
+Once you know the IP address you will use for each range, you will need to instruct pfSense to NAT traffic to those addresses to the guacamole server.
+
+.Access pfSense Firewall NAT Rules User Interface
+image::Open-pfSense-NAT-Port-Forwarding-Interface.png[]
+
+.Configure pfSense Firewall NAT Rules
+image::Main-menu-pfSense-Port-Forwarding-NAT-Menu.png[]
+
+.Add a pfSense Firewall NAT Rule for Port Forwarding
+image::Add-pfSense-NAT-Port-Forwarding-Rule.png[]
+
+
+The _Destination_ in pfSense firewall NAT rules refers to the routable IP address and port that a client would be addressing.  The _Target_ in pfSense firewall NAT rules refers to the internal host inside your lab that pfSense should redirect traffic addressed to _Destination_.  _Destination_ will refer to your WAN on VENDORNET IPs.  _Target_ will always refer to your internal server.
+
+The Destination interface will be either WAN or VENDORNET.
+
+.Choose the Destination Interface
+image::pfSense-NAT-Rule-Interface.png[]
+
+The Destination Protocol will be TCP.
+
+.Choose the Destination Protocol
+image::pfSense-NAT-Rule-Protocol.png[]
+
+The Destination IP address will be the IP address you selected from the WAN or VENDORNET lists accordingly.
+
+.Choose the Destination IP Address
+image::pfSense-NAT-Rule-Destination-Address.png[]
+
+This is where you will select the port to forward.  You will need rules for both HTTP and HTTPS.
+
+.Choose the Destination Port
+image::pfSense-NAT-Rule-Destination-Port.png[]
+
+This is where you will give the IP address on your internal network for your guacamole host.  In the examples we've given this will be 192.168.0.2.
+
+.Choose the Target IP
+image::pfSense-NAT-Rule-Target-IP.png[]
+
+This is where you will select the port to receive the traffic.  THIS SHOULD ALWAYS MATCH THE DESTINATION PORT you selected for the rule.
+
+.Choose the Target Port
+image::pfSense-NAT-Rule-Target-Port.png[]
+
+NAT port forwarding rules are complicated.  Do yourself a favor and name the rule so that you describe what it is doing.
+
+.Describe the NAT Rule
+image::pfSense-NAT-Rule-Description.png[]
+
+Save the rule.
+
+.Save the NAT Rule
+image::Save-pfSense-NAT-Rule.png[]
+
+Follow these steps to ensure you forward traffic from both the WAN IP and the VENDORNET IP to the target host, with rules for both HTTP and HTTPS. Make sure you choose to `Apply Changes` before exiting the NAT rules interface in pfSense.  The table below summarizes, by example, the four rules you should create.
+
+.Summary of Needed Port Fowarding Rules for Example Setup
+[cols='1,2,1,2,2,2,2,6']
+|===
+|*Rule* |*Interface* |*Protocol* |*Destination IP* |*Destination Port* |*Target IP* |*Target Port*  |*Description*
+|1 |WAN |TCP |10.32.50.33 |HTTP |192.168.0.2 |HTTP |Rule to forward HTTP traffic from NCCoE staff to guacamole server
+|2 |WAN |TCP |10.32.50.33 |HTTPS |192.168.0.2 |HTTPS |Rule to forward HTTPS traffic from NCCoE staff to guacamole server
+|3 |VENDORNET |TCP |10.32.50.50 |HTTP |192.168.0.2 |HTTP |Rule to forward HTTP traffic from vendor staff to guacamole server
+|4 |VENDORNET |TCP |10.32.50.50 |HTTPS |192.168.0.2 |HTTPS |Rule to forward HTTPS traffic from vendor staff to guacamole server
+|===
+
+
 === DNS Configurations
 In your DNS server (pfSense in the default lab install) set up the name resolutions required by your lab.  Using pfSense, this is accomplished from the `Services` then `DNS Resolver` menu selection.
 
-.pfSense Configure DNS Resolver
+.Access pfSense DNS Resolver Configuration Interface
 image::Open-pfSense-DNS-Resolver-Service.png[]
 
 On the General Settings tab, ensure the pfSense `DNS Resolver` is enabled.
 
-.pfSense Enable DNS Resolver Service
+.Enable pfSense DNS Resolver Service
 image::Main-menu-pfSense-DNS-Resolver.png[]
 
 To add a host entry, click the `Add` button just below and to the far right of the Host Overrides section of the page.
 
-.pfSense Add Host Resolver Entry
+.Add Host Resolver Entry in pfSense
 image::Add-Host-pfSense-DNS-Resolver.png[]
 
 Add entries for the following machines in the Host Overrides section, using the IP addresses appropriate for your lab setup:
@@ -106,7 +219,7 @@ Add entries for the following machines in the Host Overrides section, using the 
 
 Make sure you choose to `Apply Changes` before exiting the DNS Resolver interface of pfSense.
 
-.pfSense Apply DNS Resolver Changes
+.Apply DNS Resolver Changes in pfSense
 image::Apply-Changes-DNS-Resolver.png[]
 
 === Certificate Authority Configurations
