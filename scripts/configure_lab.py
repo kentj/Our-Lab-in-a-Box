@@ -68,6 +68,7 @@ def main():
    print(f"01: Lab Abbreviation: {labAbbreviation}")
 
    labName = labAbbreviation + "-lab"
+   labNameUnderscored = (labAbbreviation + "_lab")
    labNameUnderscoredUpper = (labAbbreviation + "_lab").upper()
    print(f"02: Lab Name: {labName}")
    print(f"03: Lab Name UnderScore Uppercase: {labNameUnderscoredUpper}")
@@ -76,10 +77,12 @@ def main():
    rootCADirectory = labAbbreviation.upper() + "-Lab-CA"
    rootCA_certificate_file = rootCADirectory + '.crt'
    rootCA_certificate_key_file = rootCADirectory + ".key"
+   rootCA_certificate_pem_file = rootCADirectory + ".pem"
 
    print(f"06: Lab Root Certificate Authority Directory: {rootCADirectory}")
    print(f"06a. Lab Root CA Certificate File: {rootCA_certificate_file}")
    print(f"06b. Lab Root CA Certificate Key File: {rootCA_certificate_key_file}")
+   print(f"06c. Lab Root CA Certficiate PEM File: {rootCA_certificate_pem_file}")
 
    lab_base_URL = f"{labName}.nccoe.{fqdnEnding}"
    print(f"07. Lab Base URL: {lab_base_URL}")
@@ -139,7 +142,6 @@ def main():
             ['Dockerfile', 'guacamole_build/Dockerfile'],
             ['env', '.env'],
             ['caddy_reload.sh', 'caddy_reload.sh'],
-            ['docker-compose.yaml.initializeOpenLDAP', 'docker-compose.yaml.initializeOpenLDAP'],
             ['docker-compose.yaml', 'docker-compose.yaml'] ]:
       print(f".... Rendering template {x[0]}.template to file {x[1]}")
       templateURL = baseTemplateURL + x[0] + templateSuffix
