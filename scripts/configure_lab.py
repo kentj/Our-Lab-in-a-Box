@@ -138,7 +138,7 @@ def main():
    templateSuffix = '.template'
    baseLocation = baseDirectory + "guacamole/"
 
-   for x in [ ['Caddyfile', 'caddy/Caddfile'],
+   for x in [ ['Caddyfile', 'caddy/Caddyfile'],
             ['Dockerfile', 'guacamole_build/Dockerfile'],
             ['env', '.env'],
             ['caddy_reload.sh', 'caddy_reload.sh'],
