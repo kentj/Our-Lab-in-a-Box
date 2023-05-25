@@ -1,4 +1,4 @@
 #This script runs the 'caddy reload' inside the container '${labName}-remote-caddy'
 
-docker exec -w /etc/caddy ${labName}-remote-caddy caddy reload
+docker exec -w /etc/caddy ${labName}-caddy caddy reload
 
