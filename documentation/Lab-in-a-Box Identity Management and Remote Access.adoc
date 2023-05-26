@@ -293,7 +293,7 @@ Create *server* certificates for the following machines:
 . minio.<labname>-lab.nccoe.<fqdn>
 . remote.<labname>-lab.nccoe.<fqdn>
 
-After creating each certficate, export the certificate, the key, and the p12 file for each.
+After creating each certficate, export the certificate (.crt) and key (.key) files for each.
 
 == Setup the Virtual Machines
 
@@ -374,7 +374,6 @@ remote.dc-lab.nccoe.test
     * guacamole/caddy/Caddyfile
     * guacamole/caddy_reload.sh
     * guacamole/docker-compose.yaml
-    * guacamole/docker-compose.yaml.initializeOpenLDAP
     * guacamole/.env
     * guacamole/guacamole_build/Dockerfile
 
@@ -387,9 +386,13 @@ Each of the software components that follow are installed as Docker containers. 
 
 === Installing and Configuring OpenLDAP
 
-The first service that should be setup (if you are using it), is the OpenLDAP.  A separate docker-compose file has been downloaded called `docker-compose.yaml.initializeOpenLDAP`.  It's not clear why this is necessary, as the service entry in the compose file is the same as the normal entry, but it must be run without any other containers operating its first time for configuration to be successful.  This likely indicates some race condition between the setup process and query process, but this is speculation.  To execute this special compose file, use the command prompt to type:
+The first service that should be setup (if you are using it), is the OpenLDAP.  A separate docker-compose file has been downloaded called `docker-compose.yaml.initializeOpenLDAP`.  It's not clear why this is necessary, as the service entry in the compose file is the same as the normal entry, but it must be run without any other containers operating its first time for configuration to be successful.  This likely indicates some race condition between the setup process and query process, but this is speculation.  To execute this special compose file, use the command prompt to type the following lines, noting the trailing ampersand is required to regain access to the command line for subsequent steps.:
 
-`cd /home/administrator/guacamole; docker compose -f docker-compose.yaml.initializeOpenLDAP up&`
+`cd /home/administrator/guacamole; docker compose create openldap`
+
+followed by
+
+`docker compose start openldap&`
 
 The `&` at the end of the command is very important.  When output stops streaming to the terminal, wait about another 10 minutes then press `Enter` or `Return` and at the next command prompt type:
 
@@ -402,9 +405,19 @@ The OpenLDAP service should be fully configured at this point.
 Guacamole does not automatically configure its database (hosted in MariaDB, an opensource version of MySQL).  To do so, you must first enter on the command line:
 
 
-`docker run --rm guacamole/guacamole /opt/guacamole/bin/initdb.sh --mysql > /home/administrator/guacamole/mariadb/init/initdb.sql`
+`docker run --rm guacamole/guacamole /opt/guacamole/bin/initdb.sh --mysql > /home/administrator/guacamole/guacdb/init/initdb.sql`
 
-This starts the MariaDB container with the appropriate volume mounts so that the changes we will do next are persisted.  Once the container is up and running, we open a terminal inside the container by typing:
+This creates a database script that can be used to initialize the guacamole database.
+
+Start a standalone MariaDB container with the following lines, noting the trailing ampersand is required on the second line to regain access to the terminal for subsequent steps:
+
+`cd /home/administrator/guacamole; docker compose create guacdb`
+
+followed by
+
+`docker compose start guacdb&`
+
+These commands start the MariaDB container with the appropriate volume mounts so that the changes we will do next are persisted.  Once the container is up and running, we open a terminal inside the container by typing:
 
 `docker exec -it dc-lab-guac-db /bin/bash`
 
@@ -446,15 +459,9 @@ The guacamole database has now been configured.  Exit the shell into the contain
 
 `exit` again.
 
-Shutdown the temporary Docker container by typing:
+Shutdown the initialized MariaDB instance by  typing:
 
-`docker ps`
-
-Note the container name, it will be the last column on the line (or second/third line if the line wrapped).
-
-`docker stop <container name>`
-
-`docker container prune`
+`docker compose down`
 
 === Installing and Configuring phpLDAPAdmin
 
@@ -484,13 +491,16 @@ Keycloak uses a MariaDB (opensource MySQL clone) to store its configuration and 
 
 === Installing and Configuring Keycloak
 
+. Use a browser to navigate: `https://keycloak.<labAbbreviation>-lab.nccoe.test`
+. Click Administration console
+. login using UserName: `admin` and the lab password you selected
 . Login and choose Create a Realm from the "Realm" Drop down that probably showes "Master"
-. Give the realm the name "<lab abbreviation>-lab"
+. Give the realm the name "<lab abbreviation>-lab" (don't type in the Resource file input area, use the name field)
 . Make sure the realm you just created is selected in the that Realm drop down now.
 . Add the Ldap identity config
 	. From the side bar, under "Configure" choose User federation
-	. Click the button for "LDAP"
-	. Name the federation entry, "<lab abbreviation>-Lab OpenLDAP Server"
+	. Click the button for "LDAP Provider"
+	. Name the federation entry, "<lab abbreviation>-Lab OpenLDAP Server" in `Console display name`
 	. For vendor, choose "Other"
 	. Set up the LDAP connection:
 		* Connection URL: ldap://remote.<lab abbreviation>-lab.nccoe.test
@@ -522,14 +532,18 @@ Keycloak uses a MariaDB (opensource MySQL clone) to store its configuration and 
 	
 ==== Creating a Keycloak Client Entry for Guacamole
 
-Select Clients from the sidebar with '<lab abbreviation>-lab' as the selected Realm then ensure the settings are as follows:
+Select Clients from the sidebar with '<lab abbreviation>-lab' as the selected Realm.  Click create client	 then ensure the settings are as follows:
 
 * Client type: OpenID Connect
 * Client ID: guacamole
 * Fill in a name and description
+* Click `Save` then ensure the following fields are entered as:
 * Valid redirect URIs:  https://guacamole.<lab abbreviation>-lab.nccoe.test/
 * Capability config: Client authentication: off (default)
 * Authentication flow:  Check ONLY standard flow and Implicit Flow 
+* Click `Save` again
+
+You can now close the browser window.
 
 === Installing and Configuring Guacamole
 
