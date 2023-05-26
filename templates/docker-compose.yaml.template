@@ -50,7 +50,7 @@ services:
     environment:
       GUACD_HOSTNAME: ${labName}-guacd
       MYSQL_HOSTNAME: ${labName}-guac-db
-      MYSQL_DATABASE: ${labNameUnderscoredUpper}_guac_db
+      MYSQL_DATABASE: ${labNameUnderscored}_guac_db
       MYSQL_USER: guac_db_user
       MYSQL_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
       MYSQL_AUTO_CREATE_ACCOUNTS: true
@@ -153,5 +153,5 @@ services:
       timeout: 10s
       retries: 3
     volumes:
-      - '$$PWD/mariadb/data:/var/lib/mysql'
-      - '$$PWD/mariadb/init/initdb.sql:/docker-entrypoint-initdb.d/1.sql'
+      - '$$PWD/keycloakdb/databases:/var/lib/mysql'
+
