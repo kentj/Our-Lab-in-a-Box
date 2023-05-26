@@ -284,16 +284,60 @@ Complete the remaining steps, including export of the certificate and keys as ab
 
 === Creating the Server Certificates
 
-NOTE: TODO:  Complete this section.  Insert the pictures.  Pull in the appropriate IP addresses from above.
-
-Create *server* certificates for the following machines:
+You will create *server* certificates for the following machines:
 
 . guacamole.<labname>-lab.nccoe.<fqdn>
 . keycloak.<labname>-lab.nccoe.<fqdn>
 . minio.<labname>-lab.nccoe.<fqdn>
 . remote.<labname>-lab.nccoe.<fqdn>
 
+To create a certificate, first select the `Certificate` menu from the pfSense Certificate Manager.
+
+.pfSense - Certificate Management UI under Certificate Menu
+image::Main-menu-pfSense-Certificate-Manager.png[]
+
+This will bring up a screen that will allow you to browse the certificates you have made and to create new ones.  To create a certificate, click the `Add/Sign` button in the bottom right of the page.
+
+.pfSense - Add Certificate Button
+image::Create-pfSense-Certificates.png[]
+
+This will bring up the screen captured in the following two images:
+
+.pfSense - Create Server Certificate
+image::pfSense-Create-Server-Certificate-A.png[]
+
+.pfSense - Create Server Certificate (continued)
+image::pfSense-Create-Server-Certificate-B.png[]
+
+Under *Add/Sign a New Certificate* choose the following values:
+
+* _Method_:  Create an internal Certificate
+* _Descriptive Name_: Use the FQDN for the server as listed above
+
+Under *Internal Certificate* choose the following values:
+
+* _Certificate Authority_: If you created an intermediate CA choose it.  If you did not, choose the root CA.
+* _Common Name_: Use the FQDN for the server as listed above
+
+Under *Certificate Attributes* choose the following values:
+
+* _Certificate Type_: Server Certificate
+
+All other settings can be left at their default.
+
+Click the `Save` button at the bottom of the screen to create the certificate.
+
 After creating each certficate, export the certificate (.crt) and key (.key) files for each.
+
+To export a certificate, click the radial starburst icon as seen in the image below.
+
+.pfSense Export Server Certificate
+image::Export-pfSense-Certificate.png[]
+
+To export the certificates private key, click the key icon as seen in the image below.
+
+.pfSense Export Server Certificate Private Key
+image::Export-pfSense-CertificateKey.png[]
 
 == Setup the Virtual Machines
 
@@ -443,11 +487,7 @@ Now, re-enter the `mysql` client by typing:
 
 When prompted enter the lab password you selected in the initial script.  At the `mysql` prompt, grant the appropriate permissions on the new database we have just created.
 
-`CREATE USER 'guac_db_user'@'localhost' IDENTIFIED BY '<lab password>';`
-
 `CREATE USER 'guac_db_user'@'%' IDENTIFIED BY '<lab password>';`
-
-`GRANT SELECT,INSERT,UPDATE,DELETE ON dc_lab_guac_db.* TO 'guac_db_user'@'localhost';`
 
 `GRANT SELECT,INSERT,UPDATE,DELETE ON dc_lab_guac_db.* TO 'guac_db_user'@'%';`
 
