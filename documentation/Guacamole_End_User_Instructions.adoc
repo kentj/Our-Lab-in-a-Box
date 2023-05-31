@@ -63,6 +63,8 @@ Click the `Register` button.
 
 == On-Going Use
 
+=== Connections
+
 When you sign into Guacamole, the home screen presents a list of computers, in the form of a tree, to which you can connect.  The tree is an arbitrary organization that is up to your lab manager.  It also presents thumbnails of your most recently used connections.  If you know a host exists, but you cant see or find it, you do not have permission to access it; talk to your lab manager to be granted access.  Depending on how your lab manager has configured your connections, some may require you to sign in with local credentials, others will have those credentials hidden from you.
 
 Guacamole allows three types of connections:  MS Remote Desktop Protocol used for accessing Windows hosts and desktops in the lab, SSH for accessing *nix consoles in the lab, and VNC used for accessing *nix desktops in the lab.  Each connection has an icon that tells you the protocol used.
@@ -74,3 +76,10 @@ image::Guacamole-Home-Screen.png[]
 
 Click the thumbnail or the connection name to initiate a connection.  You can have multiple Guacamole tabs open in your browser for simultaneous connections to multiple screens.  Copy and paste is supported, though the keyboard short cuts do not always function as you may expect.
 
+=== Changing Your Password
+
+Navigate to https://keycloak.<labName>-lab.nccoe.test/realms/<labName>-lab/account/#/ (or the link provided by your lab manager) to login to Keycloak and manage your account information.
+
+=== Forgotten Passwords
+
+For now, contact your lab manager to have your password reset.  Once the password is reset, you can use the instructions above to set the password to something you desire.
