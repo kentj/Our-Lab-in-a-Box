@@ -5,7 +5,7 @@ v0.1, 2023-05-31: Initial draft
 :imagesdir: ./images/
 :sectnums:
 
-:description: This document describes the process for deploying a standardized set of tools for baseline access control in the NCCoE lab environments.  The goal of these tools are to provide for identity management, authentication, authorization, and to provide SSH / RDP / VNC / etc access to VM consoles running in the lab environment while logging those accesses.  If possible, this platform will allow self-service identity management capabilities such as changing user passwords and lost password recoveries and single-sign-on for Windows and Linux hosts.  This platform, as described, leverages DNS and Certificate Authority capabilities of the lab's pfSense router.  It also leverages the MinIO platform for Amazon S3-type object storage to support basic backup and restore operations for the various datasets needed by the other services in the platform.  In each case, our intent is to allow these services to be exchanged with other providers should your specific lab needs require you to use a different set of tools.
+:description: This document describes basic setup and usage of the Guacamole tool for NCCoE and Collaborator users access into an NCCoE lab.
 
 [preface]
 == Preface
