@@ -1,0 +1,76 @@
+= Instructions for Accessing a NCCoE Lab Using Guacamole and Keycloak
+John Kent <jkent@mitre.org>
+v0.1, 2023-05-31: Initial draft
+:doctype: article
+:imagesdir: ./images/
+:sectnums:
+
+:description: This document describes the process for deploying a standardized set of tools for baseline access control in the NCCoE lab environments.  The goal of these tools are to provide for identity management, authentication, authorization, and to provide SSH / RDP / VNC / etc access to VM consoles running in the lab environment while logging those accesses.  If possible, this platform will allow self-service identity management capabilities such as changing user passwords and lost password recoveries and single-sign-on for Windows and Linux hosts.  This platform, as described, leverages DNS and Certificate Authority capabilities of the lab's pfSense router.  It also leverages the MinIO platform for Amazon S3-type object storage to support basic backup and restore operations for the various datasets needed by the other services in the platform.  In each case, our intent is to allow these services to be exchanged with other providers should your specific lab needs require you to use a different set of tools.
+
+[preface]
+== Preface
+
+NOTE: TODO: Write this section
+
+:toc:
+
+== Overview
+
+Managing access to lab resources to the appropriate NCCoE or Collaborator staff requires a multi-layered solution, including firewalls and VPNs provided by NIST and the NCCoE IT Ops team, as well as firewalls and other protections implemented locally within the lab.  At this time, policy interpretation does not allow a lab to leverage the usernames and passwords NCCoE staff and Collaborator staff select for VPN access to the NCCoE lab environment.  This requires each lab to establish its on Identity and Access Management solution.  Each lab is responsible for protecting the equipment, software, and data that collaborators entrust with the NCCoE.
+
+== Preparing Your Local Computer
+
+The NCCoE DNS server associated with the GlobalProtect VPN does not currently serve DNS records for lab use like this, so you will need to manually add host mappings to your operating system.  
+
+On the machine you will be accessing the lab from, add the following mapping to your manual name resolution.  On Mac and Linux machines, you will need to use sudo to edit the `/etc/hosts`.  On Windows10 machines, you will need to run your editor as Administrator to edit `C:\windows\system32\drivers\etc\hosts.file`.  You can use Windows Notepad as an acceptable text editor, while Windows Write and Microsoft Word are not.
+
+All users will add two entries into the host file:  one for Guacamole and another for Keycloak.  The file below is an example how the information is formatted.  You will be provided the specific IP addresses and host names you should configure by your lab manager.
+
+....
+10.33.50.179    guacamole.dc-lab.nccoe.test
+10.33.50.179    keycloak.dc-lab.nccoe.test
+....
+
+NCCoE developers working on the actually access control stack or other types of tasks in the lab may also wish to add the following types of entries:
+ 
+....
+10.33.50.179    remote.dc-lab.nccoe.test
+10.33.50.179    php-ldap-admin.dc-lab.nccoe.test
+10.33.50.180    minio.dc-lab.nccoe.test
+....
+
+The specific names and IP addresses, again, will be provided by your lab manager
+
+After editing the host file on a Mac, you may need to issue the following command to ensure the new contents are used: `dscacheutil -flushcache`.  On the Mac, you may find that the Microsoft Edge browswer works better with the hosts file than Safari.
+
+== Your First Sign-On
+
+After configuring your host file, you should be able to access the site from your workstation while attached to the NCCoE VPN.  Navigate to the guacamole web address provided by your lab manager.  You will likely receive a warning from your browser that the site identity can't be verified due to a self-signed certificate.  Acknowledge this warning and choose to visit the site anyway.  
+
+The first thing Guacamole does is forward you to a Keycloak website to authenticate you.  This site also uses a self-signed certificate so follow the same steps to acknowledge the warning and visit the site.  You should be presented with a login screen that resembles:
+
+.Keycloak Login Screen
+image::Keycloak-login-screen.png[]
+
+Click the `Register` link at the bottom of the box.  It should return a screen that resembles:
+
+.Keycloak Register Screen
+image::Keycloak-register-screen.png[]
+
+All fields on the form are required.  Please use the same username as your GlobalProtect VPN username.  You can choose a different password.  Use the email address associated you wish to receive password reset emails in the future. (This capability is not yet implemented.  Talk to your lab manager about resetting passwords.)
+Click the `Register` button.
+
+
+== On-Going Use
+
+When you sign into Guacamole, the home screen presents a list of computers, in the form of a tree, to which you can connect.  The tree is an arbitrary organization that is up to your lab manager.  It also presents thumbnails of your most recently used connections.  If you know a host exists, but you cant see or find it, you do not have permission to access it; talk to your lab manager to be granted access.  Depending on how your lab manager has configured your connections, some may require you to sign in with local credentials, others will have those credentials hidden from you.
+
+Guacamole allows three types of connections:  MS Remote Desktop Protocol used for accessing Windows hosts and desktops in the lab, SSH for accessing *nix consoles in the lab, and VNC used for accessing *nix desktops in the lab.  Each connection has an icon that tells you the protocol used.
+
+See the image below for an example list of connections:
+
+.Example Guacamole Home Screen with Connection List
+image::Guacamole-Home-Screen.png[]
+
+Click the thumbnail or the connection name to initiate a connection.  You can have multiple Guacamole tabs open in your browser for simultaneous connections to multiple screens.  Copy and paste is supported, though the keyboard short cuts do not always function as you may expect.
+
