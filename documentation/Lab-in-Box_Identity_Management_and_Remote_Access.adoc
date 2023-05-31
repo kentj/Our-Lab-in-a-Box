@@ -148,7 +148,7 @@ The Destination Protocol will be TCP.
 .Choose the Destination Protocol
 image::pfSense-NAT-Rule-Protocol.png[]
 
-The Destination IP address will be the IP address you selected from the WAN or VENDORNET lists accordingly.
+Choose `Single host or alias` under `Destination` dropdown.  Enter the Destination IP address which will be the IP address you selected from the WAN or VENDORNET lists accordingly.
 
 .Choose the Destination IP Address
 image::pfSense-NAT-Rule-Destination-Address.png[]
@@ -578,7 +578,7 @@ Select Clients from the sidebar with '<lab abbreviation>-lab' as the selected Re
 * Client ID: guacamole
 * Fill in a name and description
 * Click `Save` then ensure the following fields are entered as:
-* Valid redirect URIs:  https://guacamole.<lab abbreviation>-lab.nccoe.test/
+* Valid redirect URIs:  https://guacamole.<lab abbreviation>-lab.nccoe.test/guacamole/
 * Capability config: Client authentication: off (default)
 * Authentication flow:  Check ONLY standard flow and Implicit Flow 
 * Click `Save` again
