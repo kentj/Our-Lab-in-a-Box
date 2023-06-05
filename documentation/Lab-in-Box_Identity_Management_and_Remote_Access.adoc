@@ -613,6 +613,15 @@ Once the initial configuration is done, there is no additional maintenance that 
 
 Administrative tasks in Guacamole include configuring connections, adding users to groups, and configuring connection permissions to users or groups.  One suggested way of doing this is to create a number of groups:  NCCoE-Staff, which includes government and MITRE staff, Collaborator-Staff, which would have a sub-group for each of your collaborators.  Each collaborator staff member would be assigned to the appropriate collaborator group.
 
+==== Backing Up Guacamole Stack
+. Stop the two mariadb databases (docker stop ... )
+. sudo tar -zcvf guacamole_backup_yyyymmdd.tar.gz guacamole
+. Start the two mariadb databases (docker start ... )
+
+NOTE: TODO: Make this pretty.
+
+NOTE: TODO: Instructions for pushing the backup to MinIO
+
 === Administering MinIO
 
 NOTE: TODO:  Complete this section.
