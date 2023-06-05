@@ -68,6 +68,7 @@ def main():
    print(f"01: Lab Abbreviation: {labAbbreviation}")
 
    labName = labAbbreviation + "-lab"
+   labNameUpper = labName.upper()
    labNameUnderscored = (labAbbreviation + "_lab")
    labNameUnderscoredUpper = (labAbbreviation + "_lab").upper()
    print(f"02: Lab Name: {labName}")
