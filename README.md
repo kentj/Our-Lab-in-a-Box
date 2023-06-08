@@ -12,4 +12,16 @@ You can download the example config.ini file for the script using:
 
 `curl -LO  https://raw.githubusercontent.com/kentj/Our-Lab-in-a-Box/main/scripts/lab_config.ini`
 
-Make sure you check each entry in `lab_config.ini` to make sure it is sensible for your lab.  
+Make sure you check each entry in `lab_config.ini` to make sure it is sensible for your lab.
+
+To build a PDF of the documentation, assuming you have docker installed, you can run:
+
+`docker run -it -v <your directory where you've downloaded the *.adoc and image files>:/documents/ asciidoctor/docker-asciidoctor`
+
+This will give you a command prompt inside the docker container running the ascii-doctor software.  Type:
+
+`asciidoctor-pdf <name of file.adoc>`
+
+and a file `<name of file.pdf>` will be generated.
+
+
