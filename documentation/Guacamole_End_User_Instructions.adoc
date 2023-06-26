@@ -80,6 +80,13 @@ Click the thumbnail or the connection name to initiate a connection.  You can ha
 
 Navigate to https://keycloak.<labName>-lab.nccoe.test/realms/<labName>-lab/account/#/ (or the link provided by your lab manager) to login to Keycloak and manage your account information.
 
+. To login, select the login button on the top right of the screen.  Enter the username and  the temporary password I sent you to login.
+. From the resulting menu, click the “Personal info” tile.
+. From the left side menu, click “Account Security”, then “Signing in”.
+. Click the “Update” button mid-way down the screen on the right side.
+. Enter your new password and then enter it again for confirmation.
+. Click “Submit”.
+
 === Forgotten Passwords
 
 For now, contact your lab manager to have your password reset.  Once the password is reset, you can use the instructions above to set the password to something you desire.
