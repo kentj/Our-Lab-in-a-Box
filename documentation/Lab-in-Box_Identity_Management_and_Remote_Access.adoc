@@ -425,6 +425,9 @@ remote.dc-lab.nccoe.test
 
 NOTE: minIO integration for backup purposes has not been written yet.
 
+NOTE: TODO: Some things to remember when writing this section:  If minio is to be accessible externally, it will likely be on a different IP address.  pfSense requires each externally accessible IP address be assigned to an interface, OR to be assigned to a virtual IP on that interface.  Make sure to add instructions for creating a Virtual IP in pfSense.
+
+
 == Installing and Configuring the Services
 Each of the software components that follow are installed as Docker containers.  Each container has its own configuration scheme.  Most of the containers configure themselves and their dependencies automatically on their first run.  This is NOT the case for the OpenLDAP or Guacamole containers.  Follow these instructions in the sequence listed.
 
