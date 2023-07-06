@@ -74,6 +74,7 @@ services:
   phpldapadmin:
     image: osixia/phpldapadmin:stable
     container_name: ${labName}-phpldapadmin
+    restart: unless-stopped
     environment:
       - PHPLDAPADMIN_LDAP_HOSTS=${labName}-openldap
       - PHPLDAPADMIN_HTTPS=false
