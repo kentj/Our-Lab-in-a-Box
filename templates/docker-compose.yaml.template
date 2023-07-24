@@ -17,7 +17,7 @@ services:
 
   guacdb:
     container_name: ${labName}-guac-db
-    image: mariadb:jammy
+    image: mariadb:10.11.4-jammy
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: $${${labNameUnderscoredUpper}_PASSWORD}
@@ -138,7 +138,7 @@ services:
       - $$PWD/certs/keycloak/keycloak.${labName}.nccoe.${fqdnEnding}.p12:/opt/keycloak/conf/keycloak.${labName}.nccoe.${fqdnEnding}.p12      
 
   keycloakdb:
-    image: mariadb:jammy
+    image: mariadb:10.11.4-jammy
     container_name: ${labName}-keycloak-db
     restart: unless-stopped
     environment:
